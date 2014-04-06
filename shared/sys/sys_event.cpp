@@ -49,7 +49,8 @@ static const char *Sys_EventName( sysEventType_t evType ) {
 		"SE_CHAR",
 		"SE_MOUSE",
 		"SE_JOYSTICK_AXIS",
-		"SE_CONSOLE"
+		"SE_CONSOLE",
+		"SE_AIO_FCLOSE"
 	};
 
 	if ( evType >= SE_MAX ) {
