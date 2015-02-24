@@ -956,10 +956,7 @@ void SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
 
 		if (cl->downloadXmitBlock == cl->downloadCurrentBlock) {
 			// We have transmitted the complete window, should we start resending?
-
-			//FIXME:  This uses a hardcoded one second timeout for lost blocks
-			//the timeout should be based on client rate somehow
-			if (svs.time - cl->downloadSendTime > 1000)
+			if (svs.time - cl->downloadSendTime > MAX_DOWNLOAD_BLKSIZE * 1000 / rate)
 				cl->downloadXmitBlock = cl->downloadClientBlock;
 			else
 				return;
@@ -990,6 +987,80 @@ void SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
 
 		cl->downloadSendTime = svs.time;
 	}
+}
+
+/*
+==================
+SV_SendQueuedMessages
+Send one round of fragments, or queued messages to all clients that have data pending.
+Return the shortest time interval for sending next packet to client
+==================
+*/
+extern int SV_RateMsec(client_t *cl);
+int SV_SendQueuedMessages(void)
+{
+	int i, retval = -1, nextFragT;
+	client_t *cl;
+	
+	for(i=0; i < sv_maxclients->integer; i++)
+	{
+		cl = &svs.clients[i];
+		
+		if(cl->state && cl->netchan.unsentFragments)
+		{
+			nextFragT = SV_RateMsec(cl);
+
+			if(!nextFragT) {
+				SV_Netchan_TransmitNextFragment(&cl->netchan);
+				nextFragT = SV_RateMsec(cl);
+			}
+
+			if(nextFragT >= 0 && (retval == -1 || retval > nextFragT))
+				retval = nextFragT;
+		}
+	}
+
+	return retval;
+}
+
+
+/*
+==================
+SV_SendDownloadMessages
+Send one round of download messages to all clients
+==================
+*/
+void SV_SendMessageToClient( msg_t *msg, client_t *client );
+int SV_SendDownloadMessages(void)
+{
+	int i, numDLs = 0;
+	client_t *cl;
+	msg_t msg;
+	byte msgBuffer[MAX_MSGLEN];
+	
+	for(i=0; i < sv_maxclients->integer; i++)
+	{
+		cl = &svs.clients[i];
+		
+		if(cl->state && *cl->downloadName)
+		{
+			int basesize;
+
+			MSG_Init(&msg, msgBuffer, sizeof(msgBuffer));
+			MSG_WriteLong(&msg, cl->lastClientCommand);
+			
+			basesize = msg.cursize;
+			SV_WriteDownloadToClient(cl, &msg);
+				
+			if (msg.cursize != basesize)
+			{
+				SV_SendMessageToClient(&msg, cl);
+				numDLs++;
+			}
+		}
+	}
+
+	return numDLs;
 }
 
 /*

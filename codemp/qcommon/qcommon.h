@@ -192,6 +192,9 @@ typedef struct netchan_s {
 	int			unsentFragmentStart;
 	int			unsentLength;
 	byte		unsentBuffer[MAX_MSGLEN];
+
+	int		lastSentTime;
+	int		lastSentSize;
 } netchan_t;
 
 void Netchan_Init( int qport );

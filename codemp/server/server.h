@@ -259,6 +259,7 @@ extern	cvar_t	*sv_ratePolicy;
 extern	cvar_t	*sv_clientRate;
 extern	cvar_t	*sv_minRate;
 extern	cvar_t	*sv_maxRate;
+extern	cvar_t	*sv_dlRate;
 extern	cvar_t	*sv_minPing;
 extern	cvar_t	*sv_maxPing;
 extern	cvar_t	*sv_gametype;
