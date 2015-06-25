@@ -1190,7 +1190,7 @@ void SV_Frame( int msec ) {
 		int timeVal = SV_SendQueuedPackets();
 		// NET_Sleep will give the OS time slices until either get a packet
 		// or time enough for a server frame has gone by
-		NET_Sleep(min(frameMsec - sv.timeResidual, timeVal));
+		NET_Sleep(Q_min(frameMsec - sv.timeResidual, timeVal));
 		return;
 	}
 
