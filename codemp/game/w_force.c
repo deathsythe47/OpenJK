@@ -5141,7 +5141,8 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 
 	SeekerDroneUpdate(self);
 
-	if (self->client->ps.powerups[PW_FORCE_BOON])
+	// alpha - consume half force with boon even without +useforce
+	if (self->client->ps.powerups[PW_FORCE_BOON] && !g_fixBoon.integer)
 	{
 		prepower = self->client->ps.fd.forcePower;
 	}

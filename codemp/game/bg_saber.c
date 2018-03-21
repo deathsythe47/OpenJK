@@ -26,6 +26,11 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "bg_local.h"
 #include "w_saber.h"
 
+// alpha - access to cvars in gamecode for compiling
+#ifdef _GAME
+extern vmCvar_t g_fixBoon;
+#endif
+
 extern qboolean BG_SabersOff( playerState_t *ps );
 saberInfo_t *BG_MySaber( int clientNum, int saberNum );
 
@@ -113,6 +118,13 @@ void BG_ForcePowerDrain( playerState_t *ps, forcePowers_t forcePower, int overri
 
 		return;
 	}
+
+#ifdef _GAME
+	// alpha - consume half force with boon even without +useforce
+	if ( ps->powerups[PW_FORCE_BOON] && g_fixBoon.integer && drain > 1 ) {
+		drain /= 2;
+	}
+#endif
 
 	ps->fd.forcePower -= drain;
 	if ( ps->fd.forcePower < 0 )
