@@ -423,6 +423,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 			SP_info_jedimaster_start( ent );
 		}
 	}
+
+	// TEST, REMOVE LATER
+	trap->DB_ExecQuery( "CREATE TABLE test ( wew integer PRIMARY KEY, lad text NOT NULL );" );
 }
 
 

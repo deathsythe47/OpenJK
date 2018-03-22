@@ -3201,6 +3201,9 @@ void SV_BindGame( void ) {
 		gi.G2API_OverrideServer					= SV_G2API_OverrideServer;
 		gi.G2API_GetSurfaceName					= SV_G2API_GetSurfaceName;
 
+		// alpha - new base_enhanced calls
+		gi.DB_ExecQuery							= SV_ExecDBQuery;
+
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );
 		if ( !ret ) {

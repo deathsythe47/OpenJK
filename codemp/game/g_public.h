@@ -29,7 +29,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #define Q3_INFINITE			16777216
 
-#define	GAME_API_VERSION	1
+// alpha - no conflict with other APIs
+#define	GAME_API_VERSION	5000
 
 // entity->svFlags
 // the server does not know how to interpret most of the values
@@ -1093,6 +1094,9 @@ typedef struct gameImport_s {
 	void		(*G2API_CleanEntAttachments)			( void );
 	qboolean	(*G2API_OverrideServer)					( void *serverInstance );
 	void		(*G2API_GetSurfaceName)					( void *ghoul2, int surfNumber, int modelIndex, char *fillBuf );
+
+	// alpha - base_enhanced calls
+	void		(*DB_ExecQuery)							( const char* query );
 } gameImport_t;
 
 typedef struct gameExport_s {

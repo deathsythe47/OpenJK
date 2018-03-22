@@ -288,6 +288,11 @@ void SV_Startup( void ) {
 	}
 
 	Cvar_Set( "sv_running", "1" );
+
+	// alpha - init DB here and not in SV_Init() so that databases can be
+	// properly reloaded from disk in case SV_Shutdown() is called by something
+	// else than /quit, for example a 'killserver; map ...' restart script
+	SV_InitDB();
 }
 
 /*
@@ -1113,4 +1118,7 @@ Ghoul2 Insert Start
 	// disconnect any local clients
 	if( sv_killserver->integer != 2 )
 		CL_Disconnect( qfalse );
+
+	// alpha - close DB
+	SV_CloseDB();
 }

@@ -324,6 +324,9 @@ if(BuildMPEngine OR BuildMPDed)
 		"${MPDir}/server/sv_world.cpp"
 		"${MPDir}/server/sv_gameapi.cpp"
 		"${MPDir}/server/sv_gameapi.h"
+		"${MPDir}/server/sqlite3/sqlite3.c"
+		"${MPDir}/server/sqlite3/sqlite3.h"
+		"${MPDir}/server/sv_database.cpp"
 		)
 	source_group("server" FILES ${MPEngineAndDedServerFiles})
 	set(MPEngineAndDedFiles ${MPEngineAndDedFiles} ${MPEngineAndDedServerFiles})
@@ -677,6 +680,7 @@ if(BuildMPDed)
 			"${SharedDir}/sys/con_tty.cpp"
 			)
 		set(MPDedLibraries ${MPDedLibraries} ${CMAKE_DL_LIBS})
+        set(MPDedLibraries ${MPDedLibraries} "pthread")
 		source_group("sys" FILES ${MPDedSysFiles})
 		set(MPDedFiles ${MPDedFiles} ${MPDedSysFiles})
 	endif(WIN32)
