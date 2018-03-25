@@ -475,4 +475,6 @@ qboolean SV_Netchan_Process( client_t *client, msg_t *msg );
 
 void SV_InitDB();
 void SV_CloseDB();
-void SV_ExecDBQuery( const char* query );
+qboolean SV_ExecDBQuery( const char* query, DBResultCallback callback, void* userData );
+dbStmt_t* SV_CreateDBStatement( const char* sql );
+void SV_FreeDBStatement( dbStmt_t* stmt );

@@ -3203,6 +3203,8 @@ void SV_BindGame( void ) {
 
 		// alpha - new base_enhanced calls
 		gi.DB_ExecQuery							= SV_ExecDBQuery;
+		gi.DB_CreateStatement					= SV_CreateDBStatement;
+		gi.DB_FreeStatement						= SV_FreeDBStatement;
 
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );

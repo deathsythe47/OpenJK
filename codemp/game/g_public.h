@@ -376,6 +376,52 @@ typedef struct T_G_ICARUS_GETSETIDFORSTRING_s {
 	char string[2048];
 } T_G_ICARUS_GETSETIDFORSTRING;
 
+// alpha - shared structs/typedefs for new b_e calls
+
+// callback used to collect the results of sql queries in a simple way
+// return qtrue to continue, qfalse to abort
+typedef qboolean ( *DBResultCallback )( int numCols, const char** colNames, const char** colValues, void* userData );
+
+// wrapper type for sql statements that provides functions for an
+// OOP like interface instead of having lots of new trap calls
+typedef struct dbStmt_s {
+	void* handle; // internal library handle
+
+	// binds a value to the specified column for preparing the statement
+	// returns qtrue if binding was successful, qfalse otherwise
+	qboolean	( *BindString )	( struct dbStmt_s* stmt, int colIndex, const char* value );
+	qboolean	( *BindInt32 )	( struct dbStmt_s* stmt, int colIndex, int32_t value );
+	qboolean	( *BindInt64 )	( struct dbStmt_s* stmt, int colIndex, int64_t value );
+	qboolean	( *BindDouble )	( struct dbStmt_s* stmt, int colIndex, double value );
+	qboolean	( *BindNull )	( struct dbStmt_s* stmt, int colIndex );
+
+	// executes the statement and returns qtrue as long as there are rows to process
+	// returns qfalse when there are no more rows (in which case the statement can
+	// be executed again after a Reset()), or if an error occured
+	qboolean	( *Step )		( struct dbStmt_s* stmt );
+
+	// provides a way to get results similarly to simple query execution, with the
+	// advantage of being able to use prepared statements for speed
+	// in some cases, Step() still results in less code than this, for instance when
+	// the code is too simple and the callback/userData model actually adds overhead,
+	// so use whichever function is more convenient for your situation
+	// returns qfalse if an error occured during the results traversal
+	qboolean	( *StepAll )	( struct dbStmt_s* stmt, DBResultCallback callback, void* userData );
+	
+	// gets the value of the specified column for the current row of results
+	// params: statement, column index
+	const char*	( *GetString )	( struct dbStmt_s* stmt, int colIndex );
+	int32_t		( *GetInt32 )	( struct dbStmt_s* stmt, int colIndex );
+	int64_t		( *GetInt64 )	( struct dbStmt_s* stmt, int colIndex );
+	double		( *GetDouble )	( struct dbStmt_s* stmt, int colIndex );
+
+	// functions for re-using a prepared statement
+	// resetting makes a statement executable again, while clearing unbinds
+	// all parameters (sets all to NULL)
+	void		( *Reset )		( struct dbStmt_s* stmt );
+	void		( *Clear )		( struct dbStmt_s* stmt );
+} dbStmt_t;
+
 typedef enum gameImportLegacy_e {
 	G_PRINT,
 	G_ERROR,
@@ -1096,7 +1142,9 @@ typedef struct gameImport_s {
 	void		(*G2API_GetSurfaceName)					( void *ghoul2, int surfNumber, int modelIndex, char *fillBuf );
 
 	// alpha - base_enhanced calls
-	void		(*DB_ExecQuery)							( const char* query );
+	qboolean	( *DB_ExecQuery )						( const char* sql, DBResultCallback callback, void* userData );
+	dbStmt_t*	( *DB_CreateStatement )					( const char* sql );
+	void		( *DB_FreeStatement )					( dbStmt_t* stmt );
 } gameImport_t;
 
 typedef struct gameExport_s {
