@@ -5,10 +5,17 @@ static const char* serverDBFileName = "enhanced_data.db";
 
 static sqlite3* db = nullptr;
 
+static void SQLErrorCallback(void* userData, int code, const char* msg) {
+	Com_Printf( "SQL error %d: %s\n", code, msg );
+}
+
 void SV_InitDB() {
     if ( db ) {
         return;
     }
+
+	sqlite3_config( SQLITE_CONFIG_LOG, SQLErrorCallback, nullptr );
+	sqlite3_config( SQLITE_CONFIG_SINGLETHREAD );
 
     int rc;
 

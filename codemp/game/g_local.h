@@ -1526,4 +1526,7 @@ void Svcmd_ToggleAllowVote_f( void );
 void G_RegisterCvars( void );
 void G_UpdateCvars( void );
 
+// g_database.c
+void G_InitDatabase( void );
+
 extern gameImport_t *trap;

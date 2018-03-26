@@ -424,14 +424,8 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 		}
 	}
 
-	// TEST, REMOVE LATER
-	trap->DB_ExecQuery( "CREATE TABLE test ( wew integer PRIMARY KEY, lad text NOT NULL );", NULL, NULL );
-
-	dbStmt_t* stmt = trap->DB_CreateStatement( "INSERT INTO test ( wew, lad ) VALUES ( ?, ? )" );
-	stmt->BindInt32( stmt, 1, 1337 );
-	stmt->BindString( stmt, 2, "tEsT" );
-	stmt->Step( stmt );
-	trap->DB_FreeStatement( stmt );
+	// alpha - base_enhanced initialization
+	G_InitDatabase();
 }
 
 
