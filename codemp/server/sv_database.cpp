@@ -14,6 +14,7 @@ void SV_InitDB() {
         return;
     }
 
+	// general configuration
 	sqlite3_config( SQLITE_CONFIG_LOG, SQLErrorCallback, nullptr );
 	sqlite3_config( SQLITE_CONFIG_SINGLETHREAD );
 
@@ -29,6 +30,9 @@ void SV_InitDB() {
         db = nullptr;
         return;
     }
+
+	// enable foreign key support
+	SV_ExecDBQuery( "PRAGMA foreign_keys = ON;", nullptr, nullptr );
 
     Com_Printf( "Loaded database file successfully\n" );
 }

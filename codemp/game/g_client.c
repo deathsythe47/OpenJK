@@ -1379,79 +1379,100 @@ static void ForceClientSkin( gclient_t *client, char *model, const char *skin ) 
 
 /*
 ===========
-ClientCheckName
+NormalizeName
 ============
 */
-static void ClientCleanName( const char *in, char *out, int outSize )
-{
-	int outpos = 0, colorlessLen = 0, spaces = 0, ats = 0;
-
-	// discard leading spaces
-	for ( ; *in == ' '; in++);
-
-	// discard leading asterisk's (fail raven for using * as a skipnotify)
-	// apparently .* causes the issue too so... derp
-	//for(; *in == '*'; in++);
-
-	for(; *in && outpos < outSize - 1; in++)
-	{
-		out[outpos] = *in;
-
-		if ( *in == ' ' )
-		{// don't allow too many consecutive spaces
-			if ( spaces > 2 )
-				continue;
-
-			spaces++;
-		}
-		else if ( *in == '@' )
-		{// don't allow too many consecutive at signs
-			if ( ++ats > 2 ) {
-				outpos -= 2;
-				ats = 0;
-				continue;
-			}
-		}
-		else if ( (byte)*in < 0x20
-				|| (byte)*in == 0x81 || (byte)*in == 0x8D || (byte)*in == 0x8F || (byte)*in == 0x90 || (byte)*in == 0x9D
-				|| (byte)*in == 0xA0 || (byte)*in == 0xAD )
-		{
-			continue;
-		}
-		else if ( outpos > 0 && out[outpos-1] == Q_COLOR_ESCAPE )
-		{
-			if ( Q_IsColorStringExt( &out[outpos-1] ) )
-			{
-				colorlessLen--;
-
-#if 0
-				if ( ColorIndex( *in ) == 0 )
-				{// Disallow color black in names to prevent players from getting advantage playing in front of black backgrounds
-					outpos--;
-					continue;
-				}
-#endif
-			}
-			else
-			{
-				spaces = ats = 0;
-				colorlessLen++;
-			}
-		}
-		else
-		{
-			spaces = ats = 0;
-			colorlessLen++;
-		}
-
-		outpos++;
+static void NormalizeName( const char *in, char *out, int outSize, int maxColorlessLen ) {
+	if ( !out || outSize <= 0 ) {
+		return;
 	}
 
-	out[outpos] = '\0';
+	*out = '\0';
 
-	// don't allow empty names
-	if ( *out == '\0' || colorlessLen == 0 )
-		Q_strncpyz( out, "Padawan", outSize );
+	// prefix all names with ^7 by default (it will be removed if followed by another color code)
+	// this also fixes the * problem by itself without having to filter it
+	if ( in ) {
+		in = va( S_COLOR_WHITE "%s", in );
+	}
+
+	int i = 0, spaces = 0, ats = 0;
+	char pendingColorCode = '\0';
+	qboolean gotPrintableChar = qfalse;
+
+	--outSize; // make room for the null terminator
+
+	const char *p;
+
+	for ( p = in; VALIDSTRING( p ) && i < outSize && maxColorlessLen > 0; ++p ) {
+		// hardcoded ignored chars: control and blank characters
+		if ( (byte)*p < 0x20 || (byte)*p == 0x81 || (byte)*p == 0x8D || (byte)*p == 0x8F
+				|| (byte)*p == 0x90 || (byte)*p == 0x9D || (byte)*p == 0xA0 || (byte)*p == 0xAD ) {
+			continue;
+		}
+
+		// if we have a color code, remember it to write it before the next printable char
+		// this makes consecutive colors override each other and prevents spaces that surround
+		// colors from messing with the format
+		if ( Q_IsColorStringExt( p ) ) {
+			pendingColorCode = *++p;
+			continue;
+		}
+
+		if ( *p == '@' ) {
+			// no more than 2 consecutive ats (prevents stringed names)
+			if ( ats >= 2 ) {
+				continue;
+			}
+
+			++ats;
+		} else {
+			ats = 0;
+		}
+
+		if ( *p == ' ' ) {
+			// ignore all spaces until we get to our first printable char
+			if ( !gotPrintableChar ) {
+				continue;
+			}
+
+			// no more than 3 consecutive spaces
+			if ( spaces >= 3 ) {
+				continue;
+			}
+
+			++spaces;
+		} else {
+			spaces = 0;
+
+			// if this is not a space, this is a printable char
+			gotPrintableChar = qtrue;
+
+			// if we have a pending color code, write it now if we have enough room
+			// (we need 2 bytes for the color code and 1 byte for the current char, so 3 bytes)
+			// if we only have 1 or 2 bytes left, the color code will be ignored and the remaining
+			// characters written normally later
+			if ( pendingColorCode != '\0' && i < outSize - 3 ) {
+				*out++ = Q_COLOR_ESCAPE;
+				*out++ = pendingColorCode;
+				pendingColorCode = '\0';
+				i += 2;
+			}
+		}
+
+		// write the current char
+		*out++ = *p;
+		--maxColorlessLen;
+		++i;
+	}
+
+	// if spaces were written after the last printable char, the counter kept
+	// increasing, so we can just end the string earlier
+	*( out - spaces ) = '\0';
+
+	// if nothing was written, use the default name
+	if ( !i ) {
+		Com_sprintf( out, outSize, S_COLOR_WHITE "Padawan" );
+	}
 }
 
 #ifdef _DEBUG
@@ -2140,7 +2161,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 	// set name
 	Q_strncpyz( oldname, client->pers.netname, sizeof( oldname ) );
 	s = Info_ValueForKey( userinfo, "name" );
-	ClientCleanName( s, client->pers.netname, sizeof( client->pers.netname ) );
+	NormalizeName( s, client->pers.netname, sizeof( client->pers.netname ), g_maxNameLength.integer );
 	Q_strncpyz( client->pers.netname_nocolor, client->pers.netname, sizeof( client->pers.netname_nocolor ) );
 	Q_StripColor( client->pers.netname_nocolor );
 
