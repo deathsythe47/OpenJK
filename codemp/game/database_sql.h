@@ -49,15 +49,11 @@ static const char* sqlCreateConnectionsTable =
 "    [cuid_hash] TEXT,"
 "    [last_seen] INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),"
 "    [playtime] INTEGER NOT NULL DEFAULT 0,"
-"    [linked_connection] INTEGER DEFAULT NULL,"
 "    [linked_account] INTEGER DEFAULT NULL,"
 "    [temporary] INTEGER NOT NULL DEFAULT 1,"
 "    PRIMARY KEY ( [connection_id] ),"
 "    UNIQUE ( [ip_int], [cuid_hash] ),"
-"    UNIQUE ( [linked_account] ),"
-"    FOREIGN KEY ( [linked_connection] ) REFERENCES connections ( [connection_id] ) ON DELETE SET DEFAULT,"
-"    FOREIGN KEY ( [linked_account] ) REFERENCES accounts ( [account_id] ) ON DELETE SET DEFAULT,"
-"    CHECK ( ( [linked_connection] IS NULL ) OR ( [linked_account] IS NULL ) )"
+"    FOREIGN KEY ( [linked_account] ) REFERENCES accounts ( [account_id] ) ON DELETE SET DEFAULT"
 ");";
 
 // An "account" is specifically tied to a physical player and not his IP/CUID.
@@ -79,12 +75,9 @@ static const char* sqlCreateConnectionsTable =
 static const char* sqlCreateAccountsTable =
 "CREATE TABLE IF NOT EXISTS [accounts] ("
 "    [account_id] INTEGER NOT NULL,"
-"    [linked_connection] INTEGER NOT NULL,"
 "    [name] TEXT NOT NULL,"
 "    [group] TEXT DEFAULT NULL,"
-"    PRIMARY KEY ( [account_id] ),"
-"    UNIQUE ( [linked_connection] ),"
-"    FOREIGN KEY ( [linked_connection] ) REFERENCES connections ( [connection_id] ) ON DELETE RESTRICT"
+"    PRIMARY KEY ( [account_id] )"
 ");";
 
 // Nicknames are recorded for all connections to identify them more easily
@@ -104,7 +97,7 @@ static const char* sqlCreateFastcapsTable =
 "    [fastcap_id] INTEGER NOT NULL,"
 "    [mapname] TEXT NOT NULL,"
 "    [type] INTEGER NOT NULL,"
-"    [time] INTEGER NOT NULL,"
+"    [date] INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),"
 "    [linked_connection] INTEGER NOT NULL,"
 "    [capture_time_ms] INTEGER NOT NULL,"
 "    [whose_flag] INTEGER NOT NULL,"
