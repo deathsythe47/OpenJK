@@ -392,7 +392,9 @@ typedef struct dbStmt_s {
 	qboolean	( *BindString )	( struct dbStmt_s* stmt, int colIndex, const char* value );
 	qboolean	( *BindInt32 )	( struct dbStmt_s* stmt, int colIndex, int32_t value );
 	qboolean	( *BindInt64 )	( struct dbStmt_s* stmt, int colIndex, int64_t value );
+	qboolean	( *BindBool )	( struct dbStmt_s* stmt, int colIndex, qboolean value );
 	qboolean	( *BindDouble )	( struct dbStmt_s* stmt, int colIndex, double value );
+	qboolean	( *BindBlob )	( struct dbStmt_s* stmt, int colIndex, void* value, size_t size );
 	qboolean	( *BindNull )	( struct dbStmt_s* stmt, int colIndex );
 
 	// executes the statement and returns qtrue as long as there are rows to process
@@ -413,12 +415,14 @@ typedef struct dbStmt_s {
 	const char*	( *GetString )	( struct dbStmt_s* stmt, int colIndex );
 	int32_t		( *GetInt32 )	( struct dbStmt_s* stmt, int colIndex );
 	int64_t		( *GetInt64 )	( struct dbStmt_s* stmt, int colIndex );
+	qboolean	( *GetBool )	( struct dbStmt_s* stmt, int colIndex );
 	double		( *GetDouble )	( struct dbStmt_s* stmt, int colIndex );
+	const void*	( *GetBlob )	( struct dbStmt_s* stmt, int colIndex, size_t* outSize );
 
 	// functions for re-using a prepared statement
 	// resetting makes a statement executable again, while clearing unbinds
 	// all parameters (sets all to NULL)
-	void		( *Reset )		( struct dbStmt_s* stmt );
+	void		( *Reset )		( struct dbStmt_s* stmt, qboolean clearBindings );
 	void		( *Clear )		( struct dbStmt_s* stmt );
 } dbStmt_t;
 
@@ -1142,9 +1146,14 @@ typedef struct gameImport_s {
 	void		(*G2API_GetSurfaceName)					( void *ghoul2, int surfNumber, int modelIndex, char *fillBuf );
 
 	// alpha - base_enhanced calls
+
+	// database
 	qboolean	( *DB_ExecQuery )						( const char* sql, DBResultCallback callback, void* userData );
 	dbStmt_t*	( *DB_CreateStatement )					( const char* sql );
 	void		( *DB_FreeStatement )					( dbStmt_t* stmt );
+	void		( *DB_SetData )							( const char* name, void* data, size_t size );
+	const void*	( *DB_GetData )							( const char* name, size_t* outSize, qboolean remove );
+
 } gameImport_t;
 
 typedef struct gameExport_s {

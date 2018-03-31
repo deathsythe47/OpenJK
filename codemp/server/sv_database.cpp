@@ -3,7 +3,30 @@
 
 static const char* serverDBFileName = "enhanced_data.db";
 
+// global sqlite db handle
 static sqlite3* db = nullptr;
+
+// internal queries for the generic key/value data store system
+
+static const char* sqlCreateDataTable =
+"CREATE TEMP TABLE IF NOT EXISTS [data] ("
+"    [key] TEXT NOT NULL,"
+"    [data] BLOB NOT NULL,"
+"    PRIMARY KEY ( [key] )"
+");";
+
+static dbStmt_t* insertDataStmt = nullptr;
+static dbStmt_t* retrieveDataStmt = nullptr;
+static dbStmt_t* deleteDataStmt = nullptr;
+
+static const char* sqlInsertData =
+"INSERT OR REPLACE INTO [data] ( key, data ) VALUES ( ?, ? )";
+
+static const char* sqlRetrieveData =
+"SELECT data FROM [data] WHERE ( key ) = ( ? )";
+
+static const char* sqlDeleteData =
+"DELETE FROM [data] WHERE ( key ) = ( ? )";
 
 static void SQLErrorCallback(void* userData, int code, const char* msg) {
 	Com_Printf( "SQL error %d: %s\n", code, msg );
@@ -34,10 +57,24 @@ void SV_InitDB() {
 	// enable foreign key support
 	SV_ExecDBQuery( "PRAGMA foreign_keys = ON;", nullptr, nullptr );
 
+	// prepare the key/value data store table and statements
+
+	SV_ExecDBQuery( sqlCreateDataTable, nullptr, nullptr );
+	insertDataStmt = SV_CreateDBStatement( sqlInsertData );
+	retrieveDataStmt = SV_CreateDBStatement( sqlRetrieveData );
+	deleteDataStmt = SV_CreateDBStatement( sqlDeleteData );
+
     Com_Printf( "Loaded database file successfully\n" );
 }
 
 void SV_CloseDB() {
+	SV_FreeDBStatement( insertDataStmt );
+	SV_FreeDBStatement( retrieveDataStmt );
+	SV_FreeDBStatement( deleteDataStmt );
+	insertDataStmt = nullptr;
+	retrieveDataStmt = nullptr;
+	deleteDataStmt = nullptr;
+
     if ( db ) {
         sqlite3_close( db );
         db = nullptr;
@@ -100,8 +137,16 @@ static qboolean BindInt64_Internal( dbStmt_t* stmt, int colIndex, int64_t value 
 	return sqlite3_bind_int64( ( sqlite3_stmt* )( stmt->handle ), colIndex, value ) == SQLITE_OK ? qtrue : qfalse;
 }
 
+static qboolean BindBool_Internal( dbStmt_t* stmt, int colIndex, qboolean value ) {
+	return stmt->BindInt32( stmt, colIndex, value ? 1 : 0 );
+}
+
 static qboolean BindDouble_Internal( dbStmt_t* stmt, int colIndex, double value ) {
 	return sqlite3_bind_double( ( sqlite3_stmt* )( stmt->handle ), colIndex, value ) == SQLITE_OK ? qtrue : qfalse;
+}
+
+static qboolean BindBlob_Internal( dbStmt_t* stmt, int colIndex, void* value, size_t size ) {
+	return sqlite3_bind_blob( ( sqlite3_stmt* )( stmt->handle ), colIndex, value, size, nullptr ) == SQLITE_OK ? qtrue : qfalse;
 }
 
 static qboolean BindNull_Internal( dbStmt_t* stmt, int colIndex ) {
@@ -175,12 +220,28 @@ static int64_t GetInt64_Internal( dbStmt_t* stmt, int colIndex ) {
 	return sqlite3_column_int64( ( sqlite3_stmt* )( stmt->handle ), colIndex );
 }
 
+static qboolean GetBool_Internal( dbStmt_t* stmt, int colIndex ) {
+	return stmt->GetInt32( stmt, colIndex ) ? qtrue : qfalse;
+}
+
 static double GetDouble_Internal( dbStmt_t* stmt, int colIndex ) {
 	return sqlite3_column_double( ( sqlite3_stmt* )( stmt->handle ), colIndex );
 }
 
-static void Reset_Internal( dbStmt_t* stmt ) {
+static const void* GetBlob_Internal( dbStmt_t* stmt, int colIndex, size_t* outSize ) {
+	if ( outSize ) {
+		*outSize = sqlite3_column_bytes( ( sqlite3_stmt* )( stmt->handle ), colIndex );
+	}
+
+	return sqlite3_column_blob( ( sqlite3_stmt* )( stmt->handle ), colIndex );
+}
+
+static void Reset_Internal( dbStmt_t* stmt, qboolean clearBindings ) {
 	sqlite3_reset( ( sqlite3_stmt* )( stmt->handle ) );
+
+	if ( clearBindings ) {
+		stmt->Clear( stmt );
+	}
 }
 
 static void Clear_Internal( dbStmt_t* stmt ) {
@@ -212,14 +273,18 @@ dbStmt_t* SV_CreateDBStatement( const char* sql ) {
 	result->BindString = BindString_Internal;
 	result->BindInt32 = BindInt32_Internal;
 	result->BindInt64 = BindInt64_Internal;
+	result->BindBool = BindBool_Internal;
 	result->BindDouble = BindDouble_Internal;
+	result->BindBlob = BindBlob_Internal;
 	result->BindNull = BindNull_Internal;
 	result->Step = Step_Internal;
 	result->StepAll = StepAll_Internal;
 	result->GetString = GetString_Internal;
 	result->GetInt32 = GetInt32_Internal;
 	result->GetInt64 = GetInt64_Internal;
+	result->GetBool = GetBool_Internal;
 	result->GetDouble = GetDouble_Internal;
+	result->GetBlob = GetBlob_Internal;
 	result->Reset = Reset_Internal;
 	result->Clear = Clear_Internal;
 	
@@ -236,4 +301,44 @@ void SV_FreeDBStatement( dbStmt_t* stmt ) {
 	}
 
 	Z_Free( stmt );
+}
+
+void SV_SetDBData( const char* name, void* data, size_t size ) {
+	if ( !insertDataStmt ) {
+		return;
+	}
+
+	insertDataStmt->BindString( insertDataStmt, 1, name );
+	insertDataStmt->BindBlob( insertDataStmt, 2, data, size );
+	insertDataStmt->Step( insertDataStmt );
+	insertDataStmt->Reset( insertDataStmt, qtrue );
+}
+
+const void* SV_GetDBData( const char* name, size_t* outSize, qboolean remove ) {
+	if ( !retrieveDataStmt || !deleteDataStmt ) {
+		return nullptr;
+	}
+
+	// reset at the beginning so that the returned pointer is valid until the function is called again
+	retrieveDataStmt->Reset( retrieveDataStmt, qtrue );
+
+	const void* result = nullptr;
+
+	if ( outSize ) {
+		*outSize = 0;
+	}
+
+	retrieveDataStmt->BindString( retrieveDataStmt, 1, name );
+
+	if ( retrieveDataStmt->Step( retrieveDataStmt ) ) {
+		result = retrieveDataStmt->GetBlob( retrieveDataStmt, 0, outSize );
+
+		if ( remove ) {
+			deleteDataStmt->BindString( deleteDataStmt, 1, name );
+			deleteDataStmt->Step( deleteDataStmt );
+			deleteDataStmt->Reset( deleteDataStmt, qtrue );
+		}
+	}
+
+	return result;
 }

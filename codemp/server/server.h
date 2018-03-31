@@ -478,3 +478,5 @@ void SV_CloseDB();
 qboolean SV_ExecDBQuery( const char* query, DBResultCallback callback, void* userData );
 dbStmt_t* SV_CreateDBStatement( const char* sql );
 void SV_FreeDBStatement( dbStmt_t* stmt );
+void SV_SetDBData( const char* name, void* data, size_t size );
+const void* SV_GetDBData( const char* name, size_t* outSize, qboolean remove );

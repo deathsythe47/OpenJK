@@ -3202,9 +3202,13 @@ void SV_BindGame( void ) {
 		gi.G2API_GetSurfaceName					= SV_G2API_GetSurfaceName;
 
 		// alpha - new base_enhanced calls
+
+		// database
 		gi.DB_ExecQuery							= SV_ExecDBQuery;
 		gi.DB_CreateStatement					= SV_CreateDBStatement;
 		gi.DB_FreeStatement						= SV_FreeDBStatement;
+		gi.DB_SetData							= SV_SetDBData;
+		gi.DB_GetData							= SV_GetDBData;
 
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );
