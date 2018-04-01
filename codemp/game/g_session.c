@@ -43,48 +43,9 @@ G_WriteClientSessionData
 Called on game shutdown
 ================
 */
-void G_WriteClientSessionData( gclient_t *client )
-{
-	char		s[MAX_CVAR_VALUE_STRING] = {0},
-				siegeClass[64] = {0}, IP[NET_ADDRSTRMAXLEN] = {0};
-	const char	*var;
-	int			i = 0;
-
-	// for the strings, replace ' ' with 1
-
-	Q_strncpyz( siegeClass, client->sess.siegeClass, sizeof( siegeClass ) );
-	for ( i=0; siegeClass[i]; i++ ) {
-		if (siegeClass[i] == ' ')
-			siegeClass[i] = 1;
-	}
-	if ( !siegeClass[0] )
-		Q_strncpyz( siegeClass, "none", sizeof( siegeClass ) );
-
-	Q_strncpyz( IP, client->sess.IP, sizeof( IP ) );
-	for ( i=0; IP[i]; i++ ) {
-		if (IP[i] == ' ')
-			IP[i] = 1;
-	}
-
-	// Make sure there is no space on the last entry
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.sessionTeam ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.spectatorNum ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.spectatorState ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.spectatorClient ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.wins ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.losses ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.teamLeader ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.setForce ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.saberLevel ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.selectedFP ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.duelTeam ) );
-	Q_strcat( s, sizeof( s ), va( "%i ", client->sess.siegeDesiredTeam ) );
-	Q_strcat( s, sizeof( s ), va( "%s ", siegeClass ) );
-	Q_strcat( s, sizeof( s ), va( "%s", IP ) );
-
-	var = va( "session%i", client - level.clients );
-
-	trap->Cvar_Set( var, s );
+void G_WriteClientSessionData( gclient_t *client ) {
+	// alpha - save temp session data to DB
+	trap->DB_SetData( va( "session%i", client - level.clients ), &client->sess, sizeof( client->sess ) );
 }
 
 /*
@@ -94,48 +55,17 @@ G_ReadSessionData
 Called on a reconnect
 ================
 */
-void G_ReadSessionData( gclient_t *client )
-{
-	char			s[MAX_CVAR_VALUE_STRING] = {0};
-	const char		*var;
-	int			i=0, tempSessionTeam=0, tempSpectatorState, tempTeamLeader;
+void G_ReadSessionData( gclient_t *client ) {
+	// alpha - save temp session data to DB
+	size_t loadedSessSize;
+	const clientSession_t* loadedSess = trap->DB_GetData( va( "session%i", client - level.clients ), &loadedSessSize, qfalse );
 
-	var = va( "session%i", client - level.clients );
-	trap->Cvar_VariableStringBuffer( var, s, sizeof(s) );
-
-	sscanf( s, "%i %i %i %i %i %i %i %i %i %i %i %i %s %s",
-		&tempSessionTeam, //&client->sess.sessionTeam,
-		&client->sess.spectatorNum,
-		&tempSpectatorState, //&client->sess.spectatorState,
-		&client->sess.spectatorClient,
-		&client->sess.wins,
-		&client->sess.losses,
-		&tempTeamLeader, //&client->sess.teamLeader,
-		&client->sess.setForce,
-		&client->sess.saberLevel,
-		&client->sess.selectedFP,
-		&client->sess.duelTeam,
-		&client->sess.siegeDesiredTeam,
-		client->sess.siegeClass,
-		client->sess.IP
-		);
-
-	client->sess.sessionTeam	= (team_t)tempSessionTeam;
-	client->sess.spectatorState	= (spectatorState_t)tempSpectatorState;
-	client->sess.teamLeader		= (qboolean)tempTeamLeader;
-
-	// convert back to spaces from unused chars, as session data is written that way.
-	for ( i=0; client->sess.siegeClass[i]; i++ )
-	{
-		if (client->sess.siegeClass[i] == 1)
-			client->sess.siegeClass[i] = ' ';
+	if ( !loadedSess || loadedSessSize != sizeof( clientSession_t ) ) {
+		level.newSession = qtrue;
+		return;
 	}
 
-	for ( i=0; client->sess.IP[i]; i++ )
-	{
-		if (client->sess.IP[i] == 1)
-			client->sess.IP[i] = ' ';
-	}
+	Com_Memcpy( &client->sess, loadedSess, loadedSessSize );
 
 	client->ps.fd.saberAnimLevel = client->sess.saberLevel;
 	client->ps.fd.saberDrawAnimLevel = client->sess.saberLevel;
@@ -253,15 +183,11 @@ G_InitWorldSession
 ==================
 */
 void G_InitWorldSession( void ) {
-	char	s[MAX_STRING_CHARS];
-	int			gt;
-
-	trap->Cvar_VariableStringBuffer( "session", s, sizeof(s) );
-	gt = atoi( s );
+	const gametype_t* gt = ( const gametype_t* )trap->DB_GetData( "session", NULL, qfalse );
 
 	// if the gametype changed since the last session, don't use any
 	// client sessions
-	if ( level.gametype != gt ) {
+	if ( !gt || level.gametype != *gt ) {
 		level.newSession = qtrue;
 		trap->Print( "Gametype changed, clearing session data.\n" );
 	}
@@ -276,7 +202,8 @@ G_WriteSessionData
 void G_WriteSessionData( void ) {
 	int		i;
 
-	trap->Cvar_Set( "session", va("%i", level.gametype) );
+	// alpha - save temp session data to DB
+	trap->DB_SetData( "session", &level.gametype, sizeof( level.gametype ) );
 
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		if ( level.clients[i].pers.connected == CON_CONNECTED ) {
