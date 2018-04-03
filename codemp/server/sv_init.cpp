@@ -1029,6 +1029,9 @@ void SV_Init (void) {
 #ifdef DEDICATED
 	SV_InitRef();
 #endif
+
+	// alpha - crypto initialization
+	SV_InitCrypto();
 }
 
 

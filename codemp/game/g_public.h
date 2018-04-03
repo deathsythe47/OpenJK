@@ -426,6 +426,23 @@ typedef struct dbStmt_s {
 	void		( *Clear )		( struct dbStmt_s* stmt );
 } dbStmt_t;
 
+#define CRYPTO_PUBKEY_BIN_SIZE	32U // crypto_box_PUBLICKEYBYTES
+#define CRYPTO_PUBKEY_HEX_SIZE	( CRYPTO_PUBKEY_BIN_SIZE * 2 + 1 ) // NULL included
+#define CRYPTO_SECKEY_BIN_SIZE	32U // crypto_box_SECRETKEYBYTES
+#define CRYPTO_SECKEY_HEX_SIZE	( CRYPTO_SECKEY_BIN_SIZE * 2 + 1 ) // NULL included
+
+// public crypto key
+typedef struct publicKey_s {
+	uint8_t	keyBin[CRYPTO_PUBKEY_BIN_SIZE];
+	char	keyHex[CRYPTO_PUBKEY_HEX_SIZE];
+} publicKey_t;
+
+// secret crypto key
+typedef struct secretKey_s {
+	uint8_t	keyBin[CRYPTO_SECKEY_BIN_SIZE];
+	char	keyHex[CRYPTO_SECKEY_HEX_SIZE];
+} secretKey_t;
+
 typedef enum gameImportLegacy_e {
 	G_PRINT,
 	G_ERROR,
@@ -1154,6 +1171,13 @@ typedef struct gameImport_s {
 	void		( *DB_SetData )							( const char* name, void* data, size_t size );
 	const void*	( *DB_GetData )							( const char* name, size_t* outSize, qboolean remove );
 
+	// crypto
+	qboolean	( *Crypto_GenerateKeys )				( publicKey_t* pk, secretKey_t* sk );
+	qboolean	( *Crypto_LoadKeysFromFS )				( publicKey_t* pk, const char* pkFilename, secretKey_t* sk, const char* skFilename );
+	qboolean	( *Crypto_SaveKeysToFS )				( publicKey_t* pk, const char* pkFilename, secretKey_t* sk, const char* skFilename );
+	qboolean	( *Crypto_EncryptString )				( publicKey_t* pk, const char* inRaw, char* outHex, size_t outHexSize );
+	qboolean	( *Crypto_DecryptString )				( publicKey_t* pk, secretKey_t* sk, const char* inHex, char* outRaw, size_t outRawSize );
+	qboolean	( *Crypto_Hash )						( const char* inRaw, char* outHex, size_t outHexSize );
 } gameImport_t;
 
 typedef struct gameExport_s {

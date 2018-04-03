@@ -185,6 +185,29 @@ if(BuildMPEngine OR BuildMPDed)
 	list(APPEND MPEngineAndDedIncludeDirectories ${ZLIB_INCLUDE_DIR})
 	list(APPEND MPEngineAndDedLibraries          ${ZLIB_LIBRARIES})
 
+	if(UseInternalSodium)
+		if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+			set(MPEngineAndDedLibraries
+				${MPEngineAndDedLibraries}
+				${OpenJKLibDir}/sodium/lib/x86/libsodium.lib
+				)
+		else()
+			set(MPEngineAndDedLibraries
+				${MPEngineAndDedLibraries}
+				${OpenJKLibDir}/sodium/lib/x64/libsodium.lib
+				)
+		endif()
+
+		set(MPEngineAndDedIncludeDirectories
+			${MPEngineAndDedIncludeDirectories}
+			${OpenJKLibDir}/sodium/include
+			)
+	else()
+		find_package(sodium REQUIRED)
+		set(MPEngineAndDedIncludeDirectories ${MPEngineAndDedIncludeDirectories} ${sodium_INCLUDE_DIR})
+		set(MPEngineAndDedLibraries ${MPEngineAndDedLibraries} ${sodium_LIBRARY_RELEASE})
+	endif()
+
 	set(MPEngineAndDedCgameFiles
 		"${MPDir}/cgame/cg_public.h"
 		)
@@ -316,6 +339,8 @@ if(BuildMPEngine OR BuildMPDed)
 		"${MPDir}/server/sv_ccmds.cpp"
 		"${MPDir}/server/sv_challenge.cpp"
 		"${MPDir}/server/sv_client.cpp"
+        "${MPDir}/server/sv_crypto.cpp"
+        "${MPDir}/server/sv_database.cpp"
 		"${MPDir}/server/sv_game.cpp"
 		"${MPDir}/server/sv_init.cpp"
 		"${MPDir}/server/sv_main.cpp"
@@ -326,7 +351,6 @@ if(BuildMPEngine OR BuildMPDed)
 		"${MPDir}/server/sv_gameapi.h"
 		"${MPDir}/server/sqlite3/sqlite3.c"
 		"${MPDir}/server/sqlite3/sqlite3.h"
-		"${MPDir}/server/sv_database.cpp"
 		)
 	source_group("server" FILES ${MPEngineAndDedServerFiles})
 	set(MPEngineAndDedFiles ${MPEngineAndDedFiles} ${MPEngineAndDedServerFiles})

@@ -470,7 +470,7 @@ qboolean SV_Netchan_Process( client_t *client, msg_t *msg );
 
 
 //
-// sv_database.c
+// sv_database.cpp
 //
 
 void SV_InitDB();
@@ -480,3 +480,15 @@ dbStmt_t* SV_CreateDBStatement( const char* sql );
 void SV_FreeDBStatement( dbStmt_t* stmt );
 void SV_SetDBData( const char* name, void* data, size_t size );
 const void* SV_GetDBData( const char* name, size_t* outSize, qboolean remove );
+
+//
+// sv_crypto.cpp
+//
+
+qboolean SV_InitCrypto( void );
+qboolean SV_GenerateCryptoKeys( publicKey_t* pk, secretKey_t* sk );
+qboolean SV_LoadCryptoKeysFromFS( publicKey_t* pk, const char* pkFilename, secretKey_t* sk, const char* skFilename );
+qboolean SV_SaveCryptoKeysToFS( publicKey_t* pk, const char* pkFilename, secretKey_t* sk, const char* skFilename );
+qboolean SV_EncryptString( publicKey_t* pk, const char* inRaw, char* outHex, size_t outHexSize );
+qboolean SV_DecryptString( publicKey_t* pk, secretKey_t* sk, const char* inHex, char* outRaw, size_t outRawSize );
+qboolean SV_CryptoHash( const char* inRaw, char* outHex, size_t outHexSize );

@@ -3210,6 +3210,14 @@ void SV_BindGame( void ) {
 		gi.DB_SetData							= SV_SetDBData;
 		gi.DB_GetData							= SV_GetDBData;
 
+		// crypto
+		gi.Crypto_GenerateKeys					= SV_GenerateCryptoKeys;
+		gi.Crypto_LoadKeysFromFS				= SV_LoadCryptoKeysFromFS;
+		gi.Crypto_SaveKeysToFS					= SV_SaveCryptoKeysToFS;
+		gi.Crypto_EncryptString					= SV_EncryptString;
+		gi.Crypto_DecryptString					= SV_DecryptString;
+		gi.Crypto_Hash							= SV_CryptoHash;
+
 		GetGameAPI = (GetGameAPI_t)gvm->GetModuleAPI;
 		ret = GetGameAPI( GAME_API_VERSION, &gi );
 		if ( !ret ) {
