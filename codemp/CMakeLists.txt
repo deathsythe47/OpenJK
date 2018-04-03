@@ -176,6 +176,9 @@ if(BuildMPEngine OR BuildMPDed)
 
 	# Include directories
 	set(MPEngineAndDedIncludeDirectories ${MPDir} ${SharedDir} ${GSLIncludeDirectory}) # codemp folder, since includes are not always relative in the files
+	
+	# Defines
+	set(MPEngineAndDedDefines ${SharedDefines})
 
 	# Transparently use our bundled minizip.
 	list(APPEND MPEngineAndDedIncludeDirectories ${MINIZIP_INCLUDE_DIRS})
@@ -202,6 +205,10 @@ if(BuildMPEngine OR BuildMPDed)
 			${MPEngineAndDedIncludeDirectories}
 			${OpenJKLibDir}/sodium/include
 			)
+		
+		if(MSVC)
+			set(MPEngineAndDedDefines ${MPEngineAndDedDefines} "SODIUM_STATIC")
+		endif()
 	else()
 		find_package(sodium REQUIRED)
 		set(MPEngineAndDedIncludeDirectories ${MPEngineAndDedIncludeDirectories} ${sodium_INCLUDE_DIR})
@@ -375,7 +382,7 @@ if(BuildMPEngine)
 	set(MPEngineLibraries ${MPEngineAndDedLibraries})
 	set(MPEngineIncludeDirectories ${MPEngineAndDedIncludeDirectories})
 	set(MPEngineFiles ${MPEngineAndDedFiles})
-	set(MPEngineDefines ${MPSharedDefines})
+	set(MPEngineDefines ${MPEngineAndDedDefines})
 
 	#    Dependencies
 
@@ -638,7 +645,7 @@ if(BuildMPDed)
 	set(MPDedLibraries ${MPEngineAndDedLibraries})
 	set(MPDedIncludeDirectories ${MPEngineAndDedIncludeDirectories})
 	set(MPDedFiles ${MPEngineAndDedFiles})
-	set(MPDedDefines ${MPSharedDefines} "_CONSOLE" "DEDICATED")
+	set(MPDedDefines ${MPEngineAndDedDefines} "_CONSOLE" "DEDICATED")
 
 	# Dedicated renderer is compiled with the server.
 	set(MPDedicatedRendererFiles
