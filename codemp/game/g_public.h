@@ -426,10 +426,11 @@ typedef struct dbStmt_s {
 	void		( *Clear )		( struct dbStmt_s* stmt );
 } dbStmt_t;
 
-#define CRYPTO_PUBKEY_BIN_SIZE	32U // crypto_box_PUBLICKEYBYTES
-#define CRYPTO_PUBKEY_HEX_SIZE	( CRYPTO_PUBKEY_BIN_SIZE * 2 + 1 ) // NULL included
-#define CRYPTO_SECKEY_BIN_SIZE	32U // crypto_box_SECRETKEYBYTES
-#define CRYPTO_SECKEY_HEX_SIZE	( CRYPTO_SECKEY_BIN_SIZE * 2 + 1 ) // NULL included
+// key buffers
+#define CRYPTO_PUBKEY_BIN_SIZE	32U // size in bytes of the public key
+#define CRYPTO_PUBKEY_HEX_SIZE	( CRYPTO_PUBKEY_BIN_SIZE * 2 + 1 ) // public hex representation size, NULL included
+#define CRYPTO_SECKEY_BIN_SIZE	32U // size in bytes of the secret key
+#define CRYPTO_SECKEY_HEX_SIZE	( CRYPTO_SECKEY_BIN_SIZE * 2 + 1 ) // secret hex representation size, NULL included
 
 // public crypto key
 typedef struct publicKey_s {
@@ -442,6 +443,15 @@ typedef struct secretKey_s {
 	uint8_t	keyBin[CRYPTO_SECKEY_BIN_SIZE];
 	char	keyHex[CRYPTO_SECKEY_HEX_SIZE];
 } secretKey_t;
+
+// cipher buffers
+#define CRYPTO_CIPHER_BIN_SIZE	127U // binary cipher size, calculated to produce exactly 255 chars hex output
+#define CRYPTO_CIPHER_RAW_SIZE	( CRYPTO_CIPHER_BIN_SIZE - ( CRYPTO_PUBKEY_BIN_SIZE + 16U ) + 1 ) // max raw (unencrypted) buffer size, NULL included
+#define CRYPTO_CIPHER_HEX_SIZE	( CRYPTO_CIPHER_BIN_SIZE * 2 + 1 ) // cipher hex representation size, NULL included
+
+// hash buffers
+#define CRYPTO_HASH_BIN_SIZE	20U // hash binary size, gives a reasonable 40 chars long hex output
+#define CRYPTO_HASH_HEX_SIZE	( CRYPTO_HASH_BIN_SIZE * 2 + 1 ) // hash hex representation size, NULL included
 
 typedef enum gameImportLegacy_e {
 	G_PRINT,
