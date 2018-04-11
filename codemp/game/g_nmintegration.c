@@ -23,7 +23,7 @@ void G_SendNMServerCommand( int clientNum, const char* cmd, const char* argsFmt,
         va_list argPtr;
 
         // add a space before writing arguments
-        char* p = buf + size;
+        char* p = buf + sizeof( buf ) - size; // points to the null terminator
         *p++ = ' ';
         --size;
 
