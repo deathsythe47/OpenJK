@@ -253,6 +253,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	G_CacheGametype();
 
+	// alpha - init nm auth before sessions init because it sets level.nmAuthEnabled
+	G_InitNMAuth();
+
 	G_InitWorldSession();
 
 	// initialize all entities for this game

@@ -1268,6 +1268,27 @@ void Cmd_SiegeClass_f( gentity_t *ent )
 
 /*
 =================
+Cmd_SvAuth_f
+=================
+*/
+void Cmd_SvAuth_f( gentity_t* ent ) {
+	if ( trap->Argc() < 2 ) {
+		return;
+	}
+
+	char encryptedArg[CRYPTO_CIPHER_HEX_SIZE];
+	trap->Argv( 1, encryptedArg, sizeof( encryptedArg ) );
+
+	// redirect to the correct handler
+	if ( ent->client->sess.nmAuthState == NM_AUTH_CLANNOUNCE ) {
+		G_NMAuthSendVerification( ent, encryptedArg );
+	} else if ( ent->client->sess.nmAuthState == NM_AUTH_CLAUTH ) {
+		G_NMAuthFinalize( ent, encryptedArg );
+	}
+}
+
+/*
+=================
 Cmd_ForceChanged_f
 =================
 */
@@ -3412,6 +3433,7 @@ command_t commands[] = {
 	{ "score",				Cmd_Score_f,				0 },
 	{ "setviewpos",			Cmd_SetViewpos_f,			CMD_CHEAT|CMD_NOINTERMISSION },
 	{ "siegeclass",			Cmd_SiegeClass_f,			CMD_NOINTERMISSION },
+	{ "svauth", 			Cmd_SvAuth_f, 				0 },
 	{ "team",				Cmd_Team_f,					CMD_NOINTERMISSION },
 //	{ "teamtask",			Cmd_TeamTask_f,				CMD_NOINTERMISSION },
 	{ "teamvote",			Cmd_TeamVote_f,				CMD_NOINTERMISSION },

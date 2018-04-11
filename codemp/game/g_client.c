@@ -2368,6 +2368,10 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 		Q_strcat( buf, sizeof( buf ), va( "siegeclass\\%s\\", className ) );
 		Q_strcat( buf, sizeof( buf ), va( "sdt\\%i\\", className ) );
 	}
+	// alpha - for authenticated newmod clients, append their cuid
+	if ( client->sess.nmAuthState == NM_AUTH_AUTHENTICATED && VALIDSTRING( client->sess.nmCuidHash ) ) {
+		Q_strcat( buf, sizeof( buf ), va( "cid\\%s\\", client->sess.nmCuidHash ) );
+	}
 
 	trap->GetConfigstring( CS_PLAYERS+clientNum, oldClientinfo, sizeof( oldClientinfo ) );
 	trap->SetConfigstring( CS_PLAYERS+clientNum, buf );
@@ -2765,6 +2769,9 @@ void ClientBegin( int clientNum, qboolean allowTeamReset ) {
 	CalculateRanks();
 
 	G_ClearClientLog(clientNum);
+
+	// alpha - base_enhanced start
+	G_NMAuthAnnounce( ent );
 }
 
 static qboolean AllForceDisabled(int force)

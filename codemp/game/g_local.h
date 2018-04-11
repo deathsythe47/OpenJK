@@ -174,6 +174,16 @@ extern void *g2SaberInstance;
 extern qboolean gEscaping;
 extern int gEscapeTime;
 
+// alpha - base_enhanced global definitions
+typedef enum nmAuthState_e {
+	NM_AUTH_NONE = 0, // auth disabled for this player
+	NM_AUTH_FAILED, // player failed the auth process
+	NM_AUTH_PENDING, // pending for clannounce to be sent
+	NM_AUTH_CLANNOUNCE, // clannounce has been sent, waiting for response
+	NM_AUTH_CLAUTH, // got a correct response and responded with a clauth
+	NM_AUTH_AUTHENTICATED // got a final correct response: auth is complete
+} nmAuthState_t;
+
 struct gentity_s {
 	//rww - entstate must be first, to correspond with the bg shared entity structure
 	entityState_t	s;				// communicated by server to clients
@@ -471,6 +481,14 @@ typedef struct clientSession_s {
 	int			siegeDesiredTeam;
 
 	char		IP[NET_ADDRSTRMAXLEN];
+
+	// alpha - base_enhanced start
+
+	// newmod authentication support
+	nmAuthState_t	nmAuthState; // where in the auth process this client is
+	int				nmAuthServerKeys[2]; // cached server keys used to auth
+	char			nmCuidHash[CRYPTO_HASH_HEX_SIZE]; // unique client identifier
+
 } clientSession_t;
 
 // playerstate mGameFlags
@@ -1008,6 +1026,14 @@ typedef struct level_locals_s {
 	gametype_t	gametype;
 	char		mapname[MAX_QPATH];
 	char		rawmapname[MAX_QPATH];
+
+	// alpha - base_enhanced start
+
+	// newmod auth support
+	qboolean	nmAuthEnabled;
+	publicKey_t	publicKey;
+	secretKey_t secretKey;
+
 } level_locals_t;
 
 
@@ -1528,5 +1554,12 @@ void G_UpdateCvars( void );
 
 // g_database.c
 void G_InitDatabase( void );
+
+// g_nmintegration.c
+void G_SendNMServerCommand( int clientNum, const char* cmd, const char* argsFmt, ... );
+void G_InitNMAuth( void );
+void G_NMAuthAnnounce( gentity_t* ent );
+void G_NMAuthSendVerification( gentity_t* ent, const char* encryptedMsg );
+void G_NMAuthFinalize( gentity_t* ent, const char* encryptedMsg );
 
 extern gameImport_t *trap;

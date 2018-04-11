@@ -64,6 +64,7 @@ set(MPGameGameFiles
 	"${MPDir}/game/g_mover.c"
 	"${MPDir}/game/g_nav.c"
 	"${MPDir}/game/g_navnew.c"
+    "${MPDir}/game/g_nmintegration.c"
 	"${MPDir}/game/g_object.c"
 	"${MPDir}/game/g_saga.c"
 	"${MPDir}/game/g_session.c"

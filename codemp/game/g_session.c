@@ -172,6 +172,18 @@ void G_InitSessionData( gclient_t *client, char *userinfo, qboolean isBot ) {
 
 	sess->siegeClass[0] = 0;
 
+	// alpha - base_enhanced start
+
+	// newmod authentication support
+	sess->nmCuidHash[0] = '\0';
+	sess->nmAuthServerKeys[0] = sess->nmAuthServerKeys[1] = 0;
+	// clients are marked as pending for auth if they declare nm_ver
+	if ( level.nmAuthEnabled && *Info_ValueForKey( userinfo, "nm_ver" ) ) {
+		sess->nmAuthState = NM_AUTH_PENDING;
+	} else {
+		sess->nmAuthState = NM_AUTH_NONE;
+	}
+
 	G_WriteClientSessionData( client );
 }
 
