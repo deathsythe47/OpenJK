@@ -774,6 +774,9 @@ void		Com_StartupVariable( const char *match );
 // if match is NULL, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
 
+// alpha - enhanced logging system
+void		Com_Log( const char* str );
+
 
 extern	cvar_t	*com_developer;
 extern	cvar_t	*com_dedicated;

@@ -35,9 +35,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include <mutex>
+#include <queue>
 
 FILE *debuglogfile;
-fileHandle_t logfile;
+fileHandle_t	logfile;
 fileHandle_t	com_journalFile;			// events are written here
 fileHandle_t	com_journalDataFile;		// config files are written here
 
@@ -50,7 +51,6 @@ cvar_t	*com_journal;
 cvar_t	*com_timedemo;
 cvar_t	*com_sv_running;
 cvar_t	*com_cl_running;
-cvar_t	*com_logfile;		// 1 = buffer log, 2 = flush after each print
 cvar_t	*com_showtrace;
 
 cvar_t	*com_optvehtrace;
@@ -72,6 +72,10 @@ cvar_t	*com_ansiColor = NULL;
 cvar_t	*com_busyWait;
 
 cvar_t *com_affinity;
+
+// alpha - logging system cvars
+cvar_t	*log_enable;
+cvar_t	*log_fileFormat;
 
 // com_speeds times
 int		time_game;
@@ -157,40 +161,9 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 	// echo to dedicated console and early console
 	Sys_Print( msg );
 
-	// logfile
-	if ( com_logfile && com_logfile->integer ) {
-    // TTimo: only open the qconsole.log if the filesystem is in an initialized state
-    //   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
-		if ( !logfile && FS_Initialized() && !opening_qconsole ) {
-			struct tm *newtime;
-			time_t aclock;
-
-			opening_qconsole = qtrue;
-
-			time( &aclock );
-			newtime = localtime( &aclock );
-
-			logfile = FS_FOpenFileWrite( "qconsole.log" );
-
-			if ( logfile ) {
-				Com_Printf( "logfile opened on %s\n", asctime( newtime ) );
-				if ( com_logfile->integer > 1 ) {
-					// force it to not buffer so we get valid
-					// data even if we are crashing
-					FS_ForceFlush(logfile);
-				}
-			}
-			else {
-				Com_Printf( "Opening qconsole.log failed!\n" );
-				Cvar_SetValue( "logfile", 0 );
-			}
-		}
-		opening_qconsole = qfalse;
-		if ( logfile && FS_Initialized()) {
-			FS_Write(msg, strlen(msg), logfile);
-		}
-	}
-
+	// alpha - enhanced logging system
+	// we don't need to prevent recursion because that function doesn't output anything
+	Com_Log( msg );
 
 #if defined(_WIN32) && defined(_DEBUG)
 	if ( *msg )
@@ -688,6 +661,137 @@ int Com_RealTime(qtime_t *qtime) {
 	return t;
 }
 
+/*
+===================================================================
+
+LOGGING SYSTEM
+
+Unified logging system common to the engine and modules
+===================================================================
+*/
+
+#define MAX_CACHED_LOG_STRINGS	100
+
+// cache for early prints to log them to disk later
+static std::queue<std::string> cachedLogStrings;
+
+/*
+=================
+Com_InitLogging
+=================
+*/
+void Com_InitLogging( void ) {
+	if ( logfile ) {
+		return;
+	}
+
+	do {
+		// init the logging cvars
+
+		// default to buffer log except for debug builds which are more likely to not be stopped graciously/to be tested for crashes
+#ifndef _DEBUG
+		log_enable = Cvar_Get( "log_enable", "1", CVAR_INIT, "Enables logging console to a file (1 for buffer log, 2 to flush after each print)" );
+#else
+		log_enable = Cvar_Get( "log_enable", "2", CVAR_INIT, "Enables logging console to a file (1 for buffer log, 2 to flush after each print)" );
+#endif
+
+		log_fileFormat = Cvar_Get( "log_fileFormat", "logs/enhanced_%Y_%m_%d_%H_%M_%S.log", CVAR_INIT, "Name format (strftime) of log files" );
+
+		if ( !log_enable->integer ) {
+			Com_Printf( "File logging is disabled\n" );
+			break;
+		}
+
+		if ( !FS_Initialized() ) {
+			Com_Printf( "Com_InitLogging called with uninitialized file system!\n" );
+			break;
+		}
+
+		// try to open the file
+
+		struct tm *newtime;
+		time_t aclock;
+
+		time( &aclock );
+		newtime = localtime( &aclock );
+
+		char filePath[MAX_QPATH];
+		strftime( filePath, sizeof( filePath ), log_fileFormat->string, newtime );
+
+		logfile = FS_FOpenFileWrite( filePath );
+
+		if ( logfile ) {
+			if ( log_enable->integer > 1 ) {
+				FS_ForceFlush( logfile ); // force it to not buffer so we get valid data even if we are crashing
+			}
+
+			// since logfile was just assigned, this call will flush the cached prints
+			Com_Printf( "logfile opened on %s\n", asctime( newtime ) );
+
+			return;
+		} else {
+			Com_Printf( "Failed to open log file: %s\n", filePath );
+		}
+	} while ( 0 );
+
+	// if we got here, initialization failed, so clear the cached strings as we won't be using them anyway
+	std::queue<std::string>().swap( cachedLogStrings );
+
+	Cvar_SetValue( "log_enable", 0 );
+}
+
+/*
+=================
+Com_CloseLogs
+=================
+*/
+void Com_CloseLogs( void ) {
+	if ( logfile ) {
+		FS_FCloseFile( logfile );
+		logfile = NULL_FILE;
+		log_enable->integer = 0;
+	}
+}
+
+/*
+=================
+Com_Log
+
+Logs str to the current file backend if available. If not, this function
+also handles a buffer to temporarily cache strings that are attempted to
+be logged before the filesystem is initialized
+=================
+*/
+void Com_Log( const char* str ) {
+	if ( log_enable && !log_enable->integer ) {
+		return; // logging is disabled
+	}
+
+	if ( !VALIDSTRING( str ) ) {
+		return;
+	}
+
+	if ( !logfile || !FS_Initialized() ) {
+		// cache the string if we didn't initialize logging yet or if FS operations are currently unavailable
+
+		if ( cachedLogStrings.size() >= MAX_CACHED_LOG_STRINGS ) {
+			// just a safety measure to make sure we don't allocate an infinite amount of memory, but shouldn't happen
+			cachedLogStrings.pop();
+		}
+
+		cachedLogStrings.push( std::string( str ) );
+		return;
+	}
+
+	// logging is available, so process the cache first
+	while ( !cachedLogStrings.empty() ) {
+		std::string cachedString = cachedLogStrings.front();
+		cachedLogStrings.pop();
+		FS_Write( cachedString.c_str(), cachedString.length(), logfile );
+	}
+
+	FS_Write( str, strlen( str ), logfile );
+}
 
 /*
 ===================================================================
@@ -1183,6 +1287,7 @@ void Com_Init( char *commandLine ) {
 
 		FS_InitFilesystem ();
 
+		Com_InitLogging(); // alpha - enhanced logging system
 		Com_InitJournaling();
 
 		// Add some commands here already so users can use them from config files
@@ -1227,8 +1332,6 @@ void Com_Init( char *commandLine ) {
 		//
 		// init commands and vars
 		//
-		com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
-
 		com_timescale = Cvar_Get ("timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 		com_fixedtime = Cvar_Get ("fixedtime", "0", CVAR_CHEAT);
 		com_showtrace = Cvar_Get ("com_showtrace", "0", CVAR_CHEAT);
@@ -1681,11 +1784,8 @@ void Com_Shutdown (void)
 {
 	CM_ClearMap();
 
-	if (logfile) {
-		FS_FCloseFile (logfile);
-		logfile = 0;
-		com_logfile->integer = 0;//don't open up the log file again!!
-	}
+	// alpha - enhanced logging system
+	Com_CloseLogs();
 
 	if ( com_journalFile ) {
 		FS_FCloseFile( com_journalFile );
