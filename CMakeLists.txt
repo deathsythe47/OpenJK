@@ -33,9 +33,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 
 # Customizable options
-option(BuildPortableVersion "Build portable version (does not read or write files from your user/home directory" OFF)
+option(BuildPortableVersion "Build portable version (does not read or write files from your user/home directory)" OFF)
 
-option(BuildMPEngine "Whether to create projects for the MP client (openjk.exe)" OFF)
 option(BuildMPDed "Whether to create projects for the MP dedicated server (openjkded.exe)" ON)
 option(BuildMPGame "Whether to create projects for the MP server-side gamecode (jampgamex86.dll)" ON)
 
@@ -45,19 +44,15 @@ option(BuildMPGame "Whether to create projects for the MP server-side gamecode (
 # Note that we always use the bundled copy of minizip, since it is modified to
 # use Z_Malloc.
 
-set(UseInternalOpenALDefault OFF)
 set(UseInternalZlibDefault   OFF)
 set(UseInternalPNGDefault    OFF)
 set(UseInternalJPEGDefault   OFF)
-set(UseInternalSDL2Default   OFF)
 set(UseInternalSodiumDefault OFF)
 
 if(WIN32)
-  set(UseInternalOpenALDefault ON)
   set(UseInternalZlibDefault   ON)
   set(UseInternalPNGDefault    ON)
   set(UseInternalJPEGDefault   ON)
-  set(UseInternalSDL2Default   ON)
   set(UseInternalSodiumDefault ON)
 endif()
 
@@ -69,17 +64,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "BSD")
   add_definitions(-DIOAPI_NO_64)
 endif()
 
-option(UseInternalOpenAL "If set, use bundled OpenAL."    ${UseInternalOpenALDefault})
 option(UseInternalZlib   "If set, use bundled zlib."      ${UseInternalZlibDefault})
 option(UseInternalPNG    "If set, use bundled libpng."    ${UseInternalPNGDefault})
 option(UseInternalJPEG   "If set, use bundled libjpeg."   ${UseInternalJPEGDefault})
-option(UseInternalSDL2   "If set, use bundled SDL2."      ${UseInternalSDL2Default})
 option(UseInternalSodium "If set, use bundled libsodium." ${UseInternalSodiumDefault})
-
-# This option won't appear on non-Apple platforms.
-if(APPLE)
-  option(MakeApplicationBundles "Whether to build .app application bundles for engines built" ON)
-endif()
 
 # Custom CMake Modules needed
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -138,7 +126,6 @@ message(STATUS "Git revision is ${GIT_SHA1}")
 
 
 # Binary names
-set(MPEngine "openjk.${Architecture}")
 set(MPDed "openjkded.${Architecture}")
 set(MPGame "jampgame${Architecture}")
 set(AssetsPk3 "openjk-${Architecture}.pk3")
@@ -154,8 +141,8 @@ set(SharedDir ${CMAKE_SOURCE_DIR}/shared)
 set(OpenJKLibDir "${CMAKE_SOURCE_DIR}/lib")
 set(GSLIncludeDirectory "${OpenJKLibDir}/gsl-lite/include")
 
-include(InstallConfig)
 
+set(JKAInstallDir "JediAcademy")
 
 
 # Operating settings
