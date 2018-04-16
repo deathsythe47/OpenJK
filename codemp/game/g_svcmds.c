@@ -458,13 +458,13 @@ void Svcmd_Say_f( void ) {
 
 	if ( strlen( p ) >= MAX_SAY_TEXT ) {
 		p[MAX_SAY_TEXT-1] = '\0';
-		G_SecurityLogPrintf( "Cmd_Say_f from -1 (server) has been truncated: %s\n", p );
+		trap->Print( "Cmd_Say_f from -1 (server) has been truncated: %s\n", p );
 	}
 
 	Q_strncpyz( text, p, sizeof(text) );
 	Q_strstrip( text, "\n\r", "  " );
 
-	//G_LogPrintf( "say: server: %s\n", text );
+	//trap->Print( "say: server: %s\n", text );
 	trap->SendServerCommand( -1, va("print \"server: %s\n\"", text ) );
 }
 

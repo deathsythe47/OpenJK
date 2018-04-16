@@ -46,8 +46,6 @@ extern vec3_t gPainPoint;
 // the "gameversion" client command will print this plus compile date
 #define	GAMEVERSION	"base_enhanced"
 
-#define SECURITY_LOG "security.log"
-
 #define BODY_QUEUE_SIZE		8
 
 #ifndef INFINITE
@@ -901,8 +899,6 @@ typedef struct level_locals_s {
 
 	int			warmupTime;			// restart match at this time
 
-	fileHandle_t	logFile;
-
 	// store latched cvars here that we want to get at often
 	int			maxclients;
 
@@ -1002,10 +998,6 @@ typedef struct level_locals_s {
 	char		*mTargetAdjust;
 
 	char		mTeamFilter[MAX_QPATH];
-
-	struct {
-		fileHandle_t	log;
-	} security;
 
 	struct {
 		int num;
@@ -1357,8 +1349,6 @@ void SetLeader(int team, int client);
 void CheckTeamLeader( int team );
 void G_RunThink (gentity_t *ent);
 void AddTournamentQueue(gclient_t *client);
-void QDECL G_LogPrintf( const char *fmt, ... );
-void QDECL G_SecurityLogPrintf( const char *fmt, ... );
 void SendScoreboardMessageToAllClients( void );
 const char *G_GetStringEdString(char *refSection, char *refName);
 

@@ -100,8 +100,8 @@ void trap_DropClient( int clientNum, const char *reason ) {
 }
 void trap_SendServerCommand( int clientNum, const char *text ) {
 	if ( strlen( text ) > 1022 ) {
-		G_SecurityLogPrintf( "trap_SendServerCommand( %d, ... ) length exceeds 1022.\n", clientNum );
-		G_SecurityLogPrintf( "text [%s]\n", text );
+		trap_Print( va( "trap_SendServerCommand( %d, ... ) length exceeds 1022.\n", clientNum ) );
+		trap_Print( va( "text [%s]\n", text ) );
 		return;
 	}
 	Q_syscall( G_SEND_SERVER_COMMAND, clientNum, text );

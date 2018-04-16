@@ -2142,9 +2142,9 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 	// check for malformed or illegal info strings
 	s = G_ValidateUserinfo( userinfo );
 	if ( s && *s ) {
-		G_SecurityLogPrintf( "Client %d (%s) failed userinfo validation: %s [IP: %s]\n", clientNum, ent->client->pers.netname, s, client->sess.IP );
+		trap->Print( "Client %d (%s) failed userinfo validation: %s [IP: %s]\n", clientNum, ent->client->pers.netname, s, client->sess.IP );
 		trap->DropClient( clientNum, va( "Failed userinfo validation: %s", s ) );
-		G_LogPrintf( "Userinfo: %s\n", userinfo );
+		trap->Print( "Userinfo: %s\n", userinfo );
 		return qfalse;
 	}
 
@@ -2182,7 +2182,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 		}
 		else {
 			trap->SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " %s %s\n\"", oldname, G_GetStringEdString( "MP_SVGAME", "PLRENAME" ), client->pers.netname ) );
-			G_LogPrintf( "ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, oldname, ent->client->pers.netname );
+			trap->Print( "ClientRename: %i [%s] (%s) \"%s^7\" -> \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, oldname, ent->client->pers.netname );
 			client->pers.netnameTime = level.time + 5000;
 		}
 	}
@@ -2391,9 +2391,9 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 
 	if ( g_logClientInfo.integer ) {
 		if ( strcmp( oldClientinfo, buf ) )
-			G_LogPrintf( "ClientUserinfoChanged: %i %s\n", clientNum, buf );
+			trap->Print( "ClientUserinfoChanged: %i %s\n", clientNum, buf );
 		else
-			G_LogPrintf( "ClientUserinfoChanged: %i <no change>\n", clientNum );
+			trap->Print( "ClientUserinfoChanged: %i <no change>\n", clientNum );
 	}
 
 	return qtrue;
@@ -2510,7 +2510,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 
 	if ( ent->inuse )
 	{// if a player reconnects quickly after a disconnect, the client disconnect may never be called, thus flag can get lost in the ether
-		G_LogPrintf( "Forcing disconnect on active client: %i\n", clientNum );
+		trap->Print( "Forcing disconnect on active client: %i\n", clientNum );
 		// so lets just fix up anything that should happen on a disconnect
 		ClientDisconnect( clientNum );
 	}
@@ -2576,7 +2576,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 		if ( !tmpIP[0] )
 		{//No IP sent when connecting, probably an unban hack attempt
 			client->pers.connected = CON_DISCONNECTED;
-			G_SecurityLogPrintf( "Client %i (%s) sent no IP when connecting.\n", clientNum, client->pers.netname );
+			trap->Print( "Client %i (%s) sent no IP when connecting.\n", clientNum, client->pers.netname );
 			return "Invalid userinfo detected";
 		}
 	}
@@ -2584,7 +2584,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 	if ( firstTime )
 		Q_strncpyz( client->sess.IP, tmpIP, sizeof( client->sess.IP ) );
 
-	G_LogPrintf( "ClientConnect: %i [%s] (%s) \"%s^7\"\n", clientNum, tmpIP, guid, client->pers.netname );
+	trap->Print( "ClientConnect: %i [%s] (%s) \"%s^7\"\n", clientNum, tmpIP, guid, client->pers.netname );
 
 	// don't do the "xxx connected" messages if they were caried over from previous level
 	if ( firstTime ) {
@@ -2763,7 +2763,7 @@ void ClientBegin( int clientNum, qboolean allowTeamReset ) {
 			trap->SendServerCommand( -1, va("print \"%s" S_COLOR_WHITE " %s\n\"", client->pers.netname, G_GetStringEdString("MP_SVGAME", "PLENTER")) );
 		}
 	}
-	G_LogPrintf( "ClientBegin: %i\n", clientNum );
+	trap->Print( "ClientBegin: %i\n", clientNum );
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
@@ -3992,7 +3992,7 @@ void ClientDisconnect( int clientNum ) {
 		TossClientItems( ent );
 	}
 
-	G_LogPrintf( "ClientDisconnect: %i [%s] (%s) \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, ent->client->pers.netname );
+	trap->Print( "ClientDisconnect: %i [%s] (%s) \"%s^7\"\n", clientNum, ent->client->sess.IP, ent->client->pers.guid, ent->client->pers.netname );
 
 	// if we are playing in tourney mode, give a win to the other player and clear his frags for this round
 	if ( level.gametype == GT_DUEL && !level.intermissiontime && !level.warmupTime ) {

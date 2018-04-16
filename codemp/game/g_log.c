@@ -274,7 +274,7 @@ void G_LogWeaponOutput(void)
 		return;
 	}
 
-	G_LogPrintf("*****************************Weapon Log:\n" );
+	trap->Print("*****************************Weapon Log:\n" );
 
 	memset(totalpickups, 0, sizeof(totalpickups));
 	memset(totaltime, 0, sizeof(totaltime));
@@ -316,14 +316,14 @@ void G_LogWeaponOutput(void)
 		}
 	}
 
-	G_LogPrintf(  "\n****Data by Weapon:\n" );
+	trap->Print(  "\n****Data by Weapon:\n" );
 	for (j=0; j<WP_NUM_WEAPONS; j++)
 	{
-		G_LogPrintf("%15s:  Pickups: %4d,  Time:  %5d,  Deaths: %5d\n",
+		trap->Print("%15s:  Pickups: %4d,  Time:  %5d,  Deaths: %5d\n",
 				weaponNameFromIndex[j], totalpickups[j], (int)(totaltime[j]/1000), totaldeaths[j]);
 	}
 
-	G_LogPrintf(  "\n****Combat Data by Weapon:\n" );
+	trap->Print(  "\n****Combat Data by Weapon:\n" );
 	for (j=0; j<WP_NUM_WEAPONS; j++)
 	{
 		if (totalshots[j] > 0)
@@ -334,18 +334,18 @@ void G_LogWeaponOutput(void)
 		{
 			pershot = 0;
 		}
-		G_LogPrintf("%15s:  Damage: %6d,  Kills: %5d,  Dmg per Shot: %f\n",
+		trap->Print("%15s:  Damage: %6d,  Kills: %5d,  Dmg per Shot: %f\n",
 				weaponNameFromIndex[j], totaldamage[j], totalkills[j], pershot);
 	}
 
-	G_LogPrintf(  "\n****Combat Data By Damage Type:\n" );
+	trap->Print(  "\n****Combat Data By Damage Type:\n" );
 	for (j=0; j<MOD_MAX; j++)
 	{
-		G_LogPrintf("%25s:  Damage: %6d,  Kills: %5d\n",
+		trap->Print("%25s:  Damage: %6d,  Kills: %5d\n",
 				modNames[j], totaldamageMOD[j], totalkillsMOD[j]);
 	}
 
-	G_LogPrintf("\n");
+	trap->Print("\n");
 
 	// Write the whole weapon statistic log out to a file.
 	trap->FS_Open( g_statLogFile.string, &weaponfile, FS_APPEND );

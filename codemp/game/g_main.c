@@ -218,36 +218,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	//trap->SP_RegisterServer("mp_svgame");
 
-	if ( g_log.string[0] )
-	{
-		trap->FS_Open( g_log.string, &level.logFile, g_logSync.integer ? FS_APPEND_SYNC : FS_APPEND );
-		if ( level.logFile )
-			trap->Print( "Logging to %s\n", g_log.string );
-		else
-			trap->Print( "WARNING: Couldn't open logfile: %s\n", g_log.string );
-	}
-	else
-		trap->Print( "Not logging game events to disk.\n" );
-
 	trap->GetServerinfo( serverinfo, sizeof( serverinfo ) );
-	G_LogPrintf( "------------------------------------------------------------\n" );
-	G_LogPrintf( "InitGame: %s\n", serverinfo );
-
-	if ( g_securityLog.integer )
-	{
-		if ( g_securityLog.integer == 1 )
-			trap->FS_Open( SECURITY_LOG, &level.security.log, FS_APPEND );
-		else if ( g_securityLog.integer == 2 )
-			trap->FS_Open( SECURITY_LOG, &level.security.log, FS_APPEND_SYNC );
-
-		if ( level.security.log )
-			trap->Print( "Logging to "SECURITY_LOG"\n" );
-		else
-			trap->Print( "WARNING: Couldn't open logfile: "SECURITY_LOG"\n" );
-	}
-	else
-		trap->Print( "Not logging security events to disk.\n" );
-
+	trap->Print( "------------------------------------------------------------\n" );
+	trap->Print( "InitGame: %s\n", serverinfo );
 
 	G_LogWeaponInit();
 
@@ -364,7 +337,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	if ( level.gametype == GT_DUEL || level.gametype == GT_POWERDUEL )
 	{
-		G_LogPrintf("Duel Tournament Begun: kill limit %d, win limit: %d\n", fraglimit.integer, duel_fraglimit.integer );
+		trap->Print("Duel Tournament Begun: kill limit %d, win limit: %d\n", fraglimit.integer, duel_fraglimit.integer );
 	}
 
 	if ( navCalculatePaths )
@@ -492,18 +465,7 @@ void G_ShutdownGame( int restart ) {
 
 	G_LogWeaponOutput();
 
-	if ( level.logFile ) {
-		G_LogPrintf( "ShutdownGame:\n------------------------------------------------------------\n" );
-		trap->FS_Close( level.logFile );
-		level.logFile = 0;
-	}
-
-	if ( level.security.log )
-	{
-		G_SecurityLogPrintf( "ShutdownGame\n\n" );
-		trap->FS_Close( level.security.log );
-		level.security.log = 0;
-	}
+	trap->Print( "ShutdownGame:\n------------------------------------------------------------\n" );
 
 	// write all the client session data so we can get it back
 	G_WriteSessionData();
@@ -1493,72 +1455,6 @@ void ExitLevel (void) {
 }
 
 /*
-=================
-G_LogPrintf
-
-Print to the logfile with a time stamp if it is open
-=================
-*/
-void QDECL G_LogPrintf( const char *fmt, ... ) {
-	va_list		argptr;
-	char		string[1024] = {0};
-	int			mins, seconds, msec, l;
-
-	msec = level.time - level.startTime;
-
-	seconds = msec / 1000;
-	mins = seconds / 60;
-	seconds %= 60;
-//	msec %= 1000;
-
-	Com_sprintf( string, sizeof( string ), "%i:%02i ", mins, seconds );
-
-	l = strlen( string );
-
-	va_start( argptr, fmt );
-	Q_vsnprintf( string + l, sizeof( string ) - l, fmt, argptr );
-	va_end( argptr );
-
-	if ( dedicated.integer )
-		trap->Print( "%s", string + l );
-
-	if ( !level.logFile )
-		return;
-
-	trap->FS_Write( string, strlen( string ), level.logFile );
-}
-/*
-=================
-G_SecurityLogPrintf
-
-Print to the security logfile with a time stamp if it is open
-=================
-*/
-void QDECL G_SecurityLogPrintf( const char *fmt, ... ) {
-	va_list		argptr;
-	char		string[1024] = {0};
-	time_t		rawtime;
-	int			timeLen=0;
-
-	time( &rawtime );
-	localtime( &rawtime );
-	strftime( string, sizeof( string ), "[%Y-%m-%d] [%H:%M:%S] ", gmtime( &rawtime ) );
-	timeLen = strlen( string );
-
-	va_start( argptr, fmt );
-	Q_vsnprintf( string+timeLen, sizeof( string ) - timeLen, fmt, argptr );
-	va_end( argptr );
-
-	if ( dedicated.integer )
-		trap->Print( "%s", string + timeLen );
-
-	if ( !level.security.log )
-		return;
-
-	trap->FS_Write( string, strlen( string ), level.security.log );
-}
-
-/*
 ================
 LogExit
 
@@ -1569,7 +1465,7 @@ void LogExit( const char *string ) {
 	int				i, numSorted;
 	gclient_t		*cl;
 //	qboolean		won = qtrue;
-	G_LogPrintf( "Exit: %s\n", string );
+	trap->Print( "Exit: %s\n", string );
 
 	level.intermissionQueued = level.time;
 
@@ -1584,7 +1480,7 @@ void LogExit( const char *string ) {
 	}
 
 	if ( level.gametype >= GT_TEAM ) {
-		G_LogPrintf( "red:%i  blue:%i\n",
+		trap->Print( "red:%i  blue:%i\n",
 			level.teamScores[TEAM_RED], level.teamScores[TEAM_BLUE] );
 	}
 
@@ -1603,9 +1499,9 @@ void LogExit( const char *string ) {
 		ping = cl->ps.ping < 999 ? cl->ps.ping : 999;
 
 		if (level.gametype >= GT_TEAM) {
-			G_LogPrintf( "(%s) score: %i  ping: %i  client: [%s] %i \"%s^7\"\n", TeamName(cl->ps.persistant[PERS_TEAM]), cl->ps.persistant[PERS_SCORE], ping, cl->pers.guid, level.sortedClients[i], cl->pers.netname );
+			trap->Print( "(%s) score: %i  ping: %i  client: [%s] %i \"%s^7\"\n", TeamName(cl->ps.persistant[PERS_TEAM]), cl->ps.persistant[PERS_SCORE], ping, cl->pers.guid, level.sortedClients[i], cl->pers.netname );
 		} else {
-			G_LogPrintf( "score: %i  ping: %i  client: [%s] %i \"%s^7\"\n", cl->ps.persistant[PERS_SCORE], ping, cl->pers.guid, level.sortedClients[i], cl->pers.netname );
+			trap->Print( "score: %i  ping: %i  client: [%s] %i \"%s^7\"\n", cl->ps.persistant[PERS_SCORE], ping, cl->pers.guid, level.sortedClients[i], cl->pers.netname );
 		}
 //		if (g_singlePlayer.integer && (level.gametype == GT_DUEL || level.gametype == GT_POWERDUEL)) {
 //			if (g_entities[cl - level.clients].r.svFlags & SVF_BOT && cl->ps.persistant[PERS_RANK] == 0) {
@@ -1673,14 +1569,14 @@ void CheckIntermissionExit( void ) {
 
 		if ( g_austrian.integer && level.gametype != GT_POWERDUEL )
 		{
-			G_LogPrintf("Duel Results:\n");
-			//G_LogPrintf("Duel Time: %d\n", level.time );
-			G_LogPrintf("winner: %s, score: %d, wins/losses: %d/%d\n",
+			trap->Print("Duel Results:\n");
+			//trap->Print("Duel Time: %d\n", level.time );
+			trap->Print("winner: %s, score: %d, wins/losses: %d/%d\n",
 				level.clients[level.sortedClients[0]].pers.netname,
 				level.clients[level.sortedClients[0]].ps.persistant[PERS_SCORE],
 				level.clients[level.sortedClients[0]].sess.wins,
 				level.clients[level.sortedClients[0]].sess.losses );
-			G_LogPrintf("loser: %s, score: %d, wins/losses: %d/%d\n",
+			trap->Print("loser: %s, score: %d, wins/losses: %d/%d\n",
 				level.clients[level.sortedClients[1]].pers.netname,
 				level.clients[level.sortedClients[1]].ps.persistant[PERS_SCORE],
 				level.clients[level.sortedClients[1]].sess.wins,
@@ -1715,7 +1611,7 @@ void CheckIntermissionExit( void ) {
 			{
 				if (level.gametype == GT_POWERDUEL)
 				{
-					G_LogPrintf("Power Duel Initiated: %s %d/%d vs %s %d/%d and %s %d/%d, kill limit: %d\n",
+					trap->Print("Power Duel Initiated: %s %d/%d vs %s %d/%d and %s %d/%d, kill limit: %d\n",
 						level.clients[level.sortedClients[0]].pers.netname,
 						level.clients[level.sortedClients[0]].sess.wins,
 						level.clients[level.sortedClients[0]].sess.losses,
@@ -1729,7 +1625,7 @@ void CheckIntermissionExit( void ) {
 				}
 				else
 				{
-					G_LogPrintf("Duel Initiated: %s %d/%d vs %s %d/%d, kill limit: %d\n",
+					trap->Print("Duel Initiated: %s %d/%d vs %s %d/%d, kill limit: %d\n",
 						level.clients[level.sortedClients[0]].pers.netname,
 						level.clients[level.sortedClients[0]].sess.wins,
 						level.clients[level.sortedClients[0]].sess.losses,
@@ -1762,7 +1658,7 @@ void CheckIntermissionExit( void ) {
 
 		if ( g_austrian.integer && level.gametype != GT_POWERDUEL )
 		{
-			G_LogPrintf("Duel Tournament Winner: %s wins/losses: %d/%d\n",
+			trap->Print("Duel Tournament Winner: %s wins/losses: %d/%d\n",
 				level.clients[level.sortedClients[0]].pers.netname,
 				level.clients[level.sortedClients[0]].sess.wins,
 				level.clients[level.sortedClients[0]].sess.losses );
@@ -2323,7 +2219,7 @@ void CheckTournament( void ) {
 			if ( level.warmupTime != -1 ) {
 				level.warmupTime = -1;
 				trap->SetConfigstring( CS_WARMUP, va("%i", level.warmupTime) );
-				G_LogPrintf( "Warmup:\n" );
+				trap->Print( "Warmup:\n" );
 			}
 			return;
 		}
@@ -2454,7 +2350,7 @@ void CheckTournament( void ) {
 
 					if ( g_austrian.integer )
 					{
-						G_LogPrintf("Duel Initiated: %s %d/%d vs %s %d/%d and %s %d/%d, kill limit: %d\n",
+						trap->Print("Duel Initiated: %s %d/%d vs %s %d/%d and %s %d/%d, kill limit: %d\n",
 							level.clients[level.sortedClients[0]].pers.netname,
 							level.clients[level.sortedClients[0]].sess.wins,
 							level.clients[level.sortedClients[0]].sess.losses,
@@ -2498,7 +2394,7 @@ void CheckTournament( void ) {
 			if ( level.warmupTime != -1 ) {
 				level.warmupTime = -1;
 				trap->SetConfigstring( CS_WARMUP, va("%i", level.warmupTime) );
-				G_LogPrintf( "Warmup:\n" );
+				trap->Print( "Warmup:\n" );
 			}
 			return; // still waiting for team members
 		}
